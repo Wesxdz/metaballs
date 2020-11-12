@@ -22,16 +22,17 @@
 */
 
 #include <ctime>
-#include <GL\glew.h>
-#include <GL\freeglut.h>
+#include <stdlib.h>
+#include <GL/glew.h>
+#include <GL/freeglut.h>
 #include <vector>
 
-#include "Utility\algebra.hpp"
-#include "Utility\gl.hpp"
-#include "Utility\quaternion.hpp"
+#include "Utility/gl.hpp"
+#include "Utility/algebra.hpp"
+#include "Utility/quaternion.hpp"
 
 /** If you change this value, change it in the shaders as well. **/
-const static int MAX_CHARGES = 30;
+const static int MAX_CHARGES = 64;
 
 enum RenderMode
 {
@@ -43,7 +44,6 @@ struct Charge
 {
 	Point3 center;
 	Vector3 velocity;
-	
 	int radius = 1;
 };
 
@@ -66,6 +66,11 @@ struct MetaballShader3D : public Shader
 	Uniform camera_matrix_uniform = -1;
 };
 
+struct Size3
+{
+	int width, height, depth;
+};
+
 struct State
 {
 	int window = 0;
@@ -83,7 +88,7 @@ struct State
 
 	Quaternion rotation;
 
-	Size3 bounding_box = Size3(250, 150, 250);
+	Size3 bounding_box{150, 150, 100};
 };
 
 State state;
@@ -118,7 +123,7 @@ void update() {
 			charge.velocity.z *= -0.99;
 		}
 	}
-	state.rotation *= Quaternion(0.0, 0.002, 0.0, 1.0);
+	// state.rotation *= Quaternion(0.0, 0.002, 0.0, 1.0);
 }
 
 void render() {
@@ -258,10 +263,10 @@ int main(int argc, char **argv) {
 		state.charges[i].center.x = Randf(-state.bounding_box.width / 2, state.bounding_box.width / 2);
 		state.charges[i].center.y = Randf(-state.bounding_box.height / 2, state.bounding_box.height / 2);
 		state.charges[i].center.z = Randf(-state.bounding_box.depth / 2, state.bounding_box.depth / 2);
-		state.charges[i].velocity.x = Randf(-3, 3);
-		state.charges[i].velocity.y = Randf(-3, 3);
-		state.charges[i].velocity.z = Randf(-3, 3);
-		state.charges[i].radius = Randf(10, 90);
+		state.charges[i].velocity.x = Randf(-.1, .1);
+		state.charges[i].velocity.y = Randf(0, .1);
+		state.charges[i].velocity.z = Randf(-.1, .1);
+		state.charges[i].radius = Randf(70, 80);
 	}
 	state.active_charges = MAX_CHARGES;
 

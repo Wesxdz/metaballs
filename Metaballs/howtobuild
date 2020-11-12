@@ -1,0 +1,1 @@
+clang main.cpp ./Utility/*.cpp -lGL -lGLU -lglut -lGLEW -lstdc++ -lm -o main

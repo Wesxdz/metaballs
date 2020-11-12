@@ -1,7 +1,7 @@
 # version 120
 
 /** The maximum number of charges that can be passed to this shader. */
-#define MAX_CHARGES 30
+#define MAX_CHARGES 64
 
 #define INF 1.0 / 0.0
 #define EPSILON 0.01
@@ -10,6 +10,8 @@
 /** The intersection types. */
 #define INTERSECTION_ENTRY
 #define INTERSECTION_ENTRANCE
+
+#extension GL_EXT_gpu_shader4 : enable
 
 /** Container for charges, may not be full. */
 uniform vec4 charges[MAX_CHARGES];
@@ -163,7 +165,7 @@ vec3 colourForIntersection(in vec3 rd, in vec3 pos, in vec3 normal) {
 
 		float lambertian = max(dot(light_dir, normal), 0.0);
 		float specular = 0.0;
-		if (lambertian > 0.0) {			
+		if (lambertian > 0.0) {
 			vec3 refl_dir = reflect(-light_dir, normal);
 			float spec_angle = max(dot(refl_dir, -rd), 0.0);
 			specular = pow(spec_angle, shininess/4.0);
@@ -182,15 +184,22 @@ void main()
 	vec3 ro = camera_origin;
 	vec3 rd = normalize(pixel_in_world - camera_origin);
 
-	vec3 final_colour = vec3(0.0);
+	vec3 final_colour = vec3(0, 0, 0);
 	float colour_frac = 1.0;
 	for (int i = 0; i < MAX_REFLECTIONS + 1; ++i) {
 		vec3 pos, normal;
 		if (!findIntersection(ro, rd, pos, normal)) {
 			break;
 		}
-
-		vec3 colour = colourForIntersection(rd, pos, normal);
+		// float base = 0.1 + (abs(pos.z) * 0.05); // Lines
+		// float base = 0.1 + (dot(camera_origin, normal) * 1); // Grain
+		// float base = dot(camera_origin, rd * 0.1); // Screen sphere
+		float base = normal.z;
+		// float cell = (int(base * 100) % 16)/3.0;
+		float cell = (int(base * 20) % 2);
+		vec3 colour = vec3(cell);
+		// vec3 colour = vec3(1- cell, 1 - cell, 1);
+		// vec3 colour = colourForIntersection(rd, pos, normal);
 		final_colour += colour * colour_frac;
 
 		// Set parameters for next iteration.
