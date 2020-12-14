@@ -165,10 +165,10 @@ void render() {
 
 		double d = view.length();
 		double h = 2.0 * d * tan(toRad(60 /* fov */) / 2.0);
-		Matrix4x4 t1 = Matrix4x4::translation(-640, -360, d);
+		Matrix4x4 t1 = Matrix4x4::translation(-GLUT_WINDOW_WIDTH/2, -GLUT_WINDOW_HEIGHT/2, d);
 		Matrix4x4 s2 = Matrix4x4::scaling(-h / 720, -h / 720, 1.0);
 		Matrix4x4 r3 = Matrix4x4::rotation(eye, view, up);
-		Matrix4x4 t4 = Matrix4x4::translation(eye - Point3(0, 0, 0));
+		Matrix4x4 t4 = Matrix4x4::translation(eye - Point3(-2.0, -1.1, 0.0));
 		Matrix4x4 camera_matrix = t4 * r3 * s2 * t1;
 		GLfloat camera_data[16];
 		for (int i = 0; i < 16; ++i) {
@@ -239,6 +239,7 @@ void init() {
 	glutKeyboardUpFunc(handleReleaseNormalKeys);
 	glutSpecialFunc(handlePressSpecialKey);
 	glutSpecialUpFunc(handleReleaseSpecialKey);
+	glutFullScreen();
 
 	state.shader_2d.program = glLoadShader("pass_through.vert", "metaball_shader_2d.frag");
 	state.shader_2d.charges_uniform = glGetUniform(state.shader_2d, "charges");

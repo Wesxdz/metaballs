@@ -186,8 +186,8 @@ void main()
 
 	vec3 final_colour = vec3(0, 0, 0);
 	float colour_frac = 1.0;
+	vec3 pos, normal;
 	for (int i = 0; i < MAX_REFLECTIONS + 1; ++i) {
-		vec3 pos, normal;
 		if (!findIntersection(ro, rd, pos, normal)) {
 			break;
 		}
@@ -207,5 +207,6 @@ void main()
 		ro = pos + normal;
 		rd = normalize(reflect(rd, normal));
 	}
+	// final_colour *= vec3(min(pos.x, 1.0), min(pos.y, 1.0), min(-pos.z, 1.0)) * 0.1;
 	gl_FragColor = vec4(final_colour, 1);
 }

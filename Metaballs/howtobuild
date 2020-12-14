@@ -1,1 +1,4 @@
+Linux
 clang main.cpp ./Utility/*.cpp -lGL -lGLU -lglut -lGLEW -lstdc++ -lm -o main
+WASM
+emcc -O2 main.cpp ./Utility/*.cpp -lGL -lGLU -lglut -lGLEW -lstdc++ -lm -o metaballs.html
