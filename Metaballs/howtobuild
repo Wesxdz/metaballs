@@ -1,4 +1,4 @@
 Linux
 clang main.cpp ./Utility/*.cpp -lGL -lGLU -lglut -lGLEW -lstdc++ -lm -o main
 WASM
-emcc -O2 main.cpp ./Utility/*.cpp -lGL -lGLU -lglut -lGLEW -lstdc++ -lm -o metaballs.html
+emcc -O2 -s MIN_WEBGL_VERSION=2 main.cpp ./Utility/*.cpp -o metaballs.html --preload-file shaders && python -m SimpleHTTPServer

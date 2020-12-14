@@ -23,8 +23,8 @@
 
 #include <ctime>
 #include <stdlib.h>
-#include <GL/glew.h>
-#include <GL/freeglut.h>
+#include "GL/glew.h"
+#include "GL/freeglut.h"
 #include <vector>
 
 #include "Utility/gl.hpp"
@@ -73,6 +73,7 @@ struct Size3
 
 struct State
 {
+	unsigned int VBO, VAO;
 	int window = 0;
 
 	bool paused = false;
@@ -140,45 +141,51 @@ void render() {
 		charge_data[index + 3] = charge.radius;
 	}
 
-	if (state.render_mode == RENDER_MODE_2D) {
-		glUseProgram(state.shader_2d.program);
-		glUniform4fv(state.shader_2d.charges_uniform, state.active_charges, charge_data);
-		glUniform1i(state.shader_2d.charge_count_uniform, state.active_charges);
-		glUniform1f(state.shader_2d.threshold_uniform, state.threshold);
-	} else if (state.render_mode == RENDER_MODE_3D) {
-		glUseProgram(state.shader_3d.program);
-		glUniform4fv(state.shader_3d.charges_uniform, state.active_charges, charge_data);
-		glUniform1i(state.shader_3d.charge_count_uniform, state.active_charges);
-		glUniform1f(state.shader_3d.threshold_uniform, state.threshold);
+	// if (state.render_mode == RENDER_MODE_2D) {
+	// 	glUseProgram(state.shader_2d.program);
+	// 	glUniform4fv(state.shader_2d.charges_uniform, state.active_charges, charge_data);
+	// 	glUniform1i(state.shader_2d.charge_count_uniform, state.active_charges);
+	// 	glUniform1f(state.shader_2d.threshold_uniform, state.threshold);
+	// } else if (state.render_mode == RENDER_MODE_3D) {
 
-		Point3 eye = state.rotation.matrix() * Point3(0, 0, -400);
+	// }
+	glUseProgram(state.shader_3d.program);
+	glUniform4fv(state.shader_3d.charges_uniform, state.active_charges, charge_data);
+	glUniform1i(state.shader_3d.charge_count_uniform, state.active_charges);
+	glUniform1f(state.shader_3d.threshold_uniform, state.threshold);
 
-		GLfloat origin[3];
-		for (int i = 0; i < 3; ++i) {
-			origin[i] = eye.d[i];
-		}
-		glUniform3fv(state.shader_3d.camera_origin_uniform, 1, origin);
+	Point3 eye = state.rotation.matrix() * Point3(0, 0, -400);
 
-		Vector3 view = Point3(0, 0, 0) - eye;
-		view.normalize();
-		Vector3 up(0, 1, 0);
-
-		double d = view.length();
-		double h = 2.0 * d * tan(toRad(60 /* fov */) / 2.0);
-		Matrix4x4 t1 = Matrix4x4::translation(-GLUT_WINDOW_WIDTH/2, -GLUT_WINDOW_HEIGHT/2, d);
-		Matrix4x4 s2 = Matrix4x4::scaling(-h / 720, -h / 720, 1.0);
-		Matrix4x4 r3 = Matrix4x4::rotation(eye, view, up);
-		Matrix4x4 t4 = Matrix4x4::translation(eye - Point3(-2.0, -1.1, 0.0));
-		Matrix4x4 camera_matrix = t4 * r3 * s2 * t1;
-		GLfloat camera_data[16];
-		for (int i = 0; i < 16; ++i) {
-			camera_data[i] = camera_matrix.d[i];
-		}
-		glUniformMatrix4fv(state.shader_3d.camera_matrix_uniform, 1, false, camera_data);
+	GLfloat origin[3];
+	for (int i = 0; i < 3; ++i) {
+		origin[i] = eye.d[i];
 	}
+	glUniform3fv(state.shader_3d.camera_origin_uniform, 1, origin);
+
+	Vector3 view = Point3(0, 0, 0) - eye;
+	view.normalize();
+	Vector3 up(0, 1, 0);
+
+	double d = view.length();
+	double h = 2.0 * d * tan(toRad(60 /* fov */) / 2.0);
+	Matrix4x4 t1 = Matrix4x4::translation(-640, -360, d);
+	Matrix4x4 s2 = Matrix4x4::scaling(-h / 720, -h / 720, 1.0);
+	Matrix4x4 r3 = Matrix4x4::rotation(eye, view, up);
+	Matrix4x4 t4 = Matrix4x4::translation(eye - Point3(0, 0, 0));
+	Matrix4x4 camera_matrix = t4 * r3 * s2 * t1;
+	GLfloat camera_data[16];
+	for (int i = 0; i < 16; ++i) {
+		camera_data[i] = camera_matrix.d[i];
+	}
+	glUniformMatrix4fv(state.shader_3d.camera_matrix_uniform, 1, false, camera_data);
 
 	delete[] charge_data;
-	glDrawRect(-1, 1, -1, 1, 0);
+
+	glBindVertexArray(state.VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+	// glDrawRect(-1, 1, -1, 1, 0);
+	// TODO: glBegin is depreciated and not viable for emscripten
+	// Use VAO/VBO quad created on setup instead
 
 	glutSwapBuffers();
 	glutPostRedisplay();
@@ -226,27 +233,53 @@ void handleReleaseSpecialKey(int key, int x, int y) {
 
 void init() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-	glDisable(GL_NORMALIZE);
+	// glDisable(GL_NORMALIZE);
 
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glutDisplayFunc(tick);
 
-	glutIgnoreKeyRepeat(1);
+	// glutIgnoreKeyRepeat(1);
 	glutMouseFunc(handleMouseButton);
 	glutKeyboardFunc(handlePressNormalKeys);
 	glutKeyboardUpFunc(handleReleaseNormalKeys);
 	glutSpecialFunc(handlePressSpecialKey);
 	glutSpecialUpFunc(handleReleaseSpecialKey);
-	glutFullScreen();
+	// glutFullScreen();
 
-	state.shader_2d.program = glLoadShader("pass_through.vert", "metaball_shader_2d.frag");
-	state.shader_2d.charges_uniform = glGetUniform(state.shader_2d, "charges");
-	state.shader_2d.charge_count_uniform = glGetUniform(state.shader_2d, "charge_count");
-	state.shader_2d.threshold_uniform = glGetUniform(state.shader_2d, "threshold");
+	float vertices[] = 
+	{
+		// first triangle
+		1.0f,  1.0f, 0.0f,  // top right
+		1.0f, -1.0f, 0.0f,  // bottom right
+		-1.0f,  1.0f, 0.0f,  // top left 
+		// second triangle
+		1.0f, -1.0f, 0.0f,  // bottom right
+		-1.0f, -1.0f, 0.0f,  // bottom left
+		-1.0f,  1.0f, 0.0f   // top left
+	};
 
-	state.shader_3d.program = glLoadShader("metaball_shader_3d.vert", "metaball_shader_3d.frag");
+	glGenVertexArrays(1, &state.VAO);
+	glBindVertexArray(state.VAO);
+
+	glGenBuffers(1, &state.VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, state.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, state.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+
+	// state.shader_2d.program = glLoadShader("shaders/pass_through.vert", "shaders/metaball_2d.frag");
+	// state.shader_2d.charges_uniform = glGetUniform(state.shader_2d, "charges");
+	// state.shader_2d.charge_count_uniform = glGetUniform(state.shader_2d, "charge_count");
+	// state.shader_2d.threshold_uniform = glGetUniform(state.shader_2d, "threshold");
+
+	state.shader_3d.program = glLoadShader("shaders/metaball_3d.vert", "shaders/metaball_3d.frag");
 	state.shader_3d.charges_uniform = glGetUniform(state.shader_3d, "charges");
 	state.shader_3d.charge_count_uniform = glGetUniform(state.shader_3d, "charge_count");
 	state.shader_3d.threshold_uniform = glGetUniform(state.shader_3d, "threshold");
@@ -264,10 +297,11 @@ int main(int argc, char **argv) {
 		state.charges[i].center.x = Randf(-state.bounding_box.width / 2, state.bounding_box.width / 2);
 		state.charges[i].center.y = Randf(-state.bounding_box.height / 2, state.bounding_box.height / 2);
 		state.charges[i].center.z = Randf(-state.bounding_box.depth / 2, state.bounding_box.depth / 2);
-		state.charges[i].velocity.x = Randf(-.1, .1);
-		state.charges[i].velocity.y = Randf(0, .1);
-		state.charges[i].velocity.z = Randf(-.1, .1);
-		state.charges[i].radius = Randf(70, 80);
+		float speed = 0.1f;
+		state.charges[i].velocity.x = Randf(-speed, speed);
+		state.charges[i].velocity.y = Randf(-speed, speed);
+		state.charges[i].velocity.z = Randf(-speed, speed);
+		state.charges[i].radius = Randf(50, 70);
 	}
 	state.active_charges = MAX_CHARGES;
 
